@@ -1,0 +1,10 @@
+1、_dirname是node.js中的一个全局变量，指向当前执行脚本所在的目录。
+2、webpack非全局安装使用node_modules/.bin/webpack；
+	可以使用npm引到任务执行"scripts": { "start": "webpack" }，
+		npm start === node_modules/.bin/webpack === webpack(全局安装)；
+	如脚本不是start要这样用npm run {script name}
+3、JSON文件不支持注释
+4、项目下安装依赖npm install webpack@2.3 --save-dev 
+5、const定义变量不可修改，必须初始化
+   var定义变量可修改，不初始化为undefined
+   let是块级作用域，函数内部使用let定义后，对函数外部无影响
