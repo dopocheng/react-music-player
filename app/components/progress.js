@@ -26,7 +26,9 @@ class Progress extends React.Component{
 		this.props.onProgressChange && this.props.onProgressChange(progress);
 	} 	
 	render() {
+		console.log("0000000");
 		return(
+
 			<div className="components-progress" ref="progressBar" onClick={this.changeProgress.bind(this)}>
 				<div className="progress" 
 					 style={{

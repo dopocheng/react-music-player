@@ -4,6 +4,7 @@ import Progress from './components/Progress';
 import 'jplayer';
 import Player from './pages/Player';
 import Musiclist from './pages/musiclist';
+
 import { MUSIC_LIST } from './config/musiclist';
 
 let duration = null;
