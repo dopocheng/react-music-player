@@ -16,7 +16,6 @@ class MusicListItem extends React.Component{
 	render() {
 		let musicItem = this.props.musicItem;
 		return (
-			<li className={`components-listitem row${this.props.focus ? ' focus' : ''}`}>
 			<li onClick={this.playerMusic.bind(this, musicItem)} className={`components-listitem row${this.props.focus ? ' focus' : ''}`}>
 				<p><strong>{musicItem.title} </strong> - {musicItem.artist} </p>
 				<p onClick={this.deleteMusic.bind(this, musicItem)} className="-col-auto delete"></p>

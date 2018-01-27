@@ -1,66 +1,173 @@
 import React from 'react';
-import Header from './components/header';
-import Progress from './components/Progress';
-import 'jplayer';
-import Player from './pages/Player';
-import Musiclist from './pages/musiclist';
-
+import { BrowserRouter as Router,Link,Route,Switch} from 'react-router-dom';
 import { MUSIC_LIST } from './config/musiclist';
+import { randomRange } from './utils/util';
+import Pubsub from 'Pubsub-js';
+import 'jplayer';
 
-let duration = null;
-class Root extends React.Component{
-	constructor() {
-	    super();
-	    this.state = {
-	    	musicList: MUSIC_LIST,
-	      currentMusicItem: MUSIC_LIST[3]
-	    };
-    }
-	// getInitialState() {
-	// 	return {
-	// 		progress: '-'
-	// 	}
-	// }
+import Header from './components/header';
+import Progress from './components/progress';
+import Player from './pages/player';
+import Musiclist from './pages/list';
+
+let musiclist = require('./config/musiclist');
+
+// class App extends React.Component{
+// 	constructor(props) {
+// 	    super(props);
+// 	    this.state = {
+// 	    	musicList: MUSIC_LIST,
+// 	      currentMusicItem: MUSIC_LIST[3],
+// 	      repeatType: 'cycle',
+// 	    };
+//     }
+// }
 	
+class Root extends React.Component{
+
+	constructor(props) {
+	    super(props);
+	    this.state = {
+		    musicList: MUSIC_LIST,
+		    currentMusicItem:MUSIC_LIST[0],
+		    repeatType: 'cycle',
+	    };
+	    // this.playMusic = this.playMusic
+    }
+
+	playMusic(musicItem){				
+		$('#player').jPlayer('setMedia', {
+			mp3: musicItem.file
+		}).jPlayer('play');		
+		this.setState({
+			currentMusicItem: musicItem
+		})
+
+	};
+//播放上一曲
+	playPrev() {
+		playNext();
+	}
+
+//播放下一曲
+	playNext(type = 'next') {
+		console.error("****playNext*********"+ type);
+		let index = this.findMusicIndex(this.state.currentMusicItem);
+		let newIndex = null;
+		let musicListLength = this.state.musicList.length; 
+		if(type === 'next') {
+			newIndex = (index + 1) % musicListLength;
+		}else{
+			newIndex = (index - 1 + musicListLength) % musicListLength;
+		}
+
+		this.playMusic(this.state.musicList[newIndex]);
+	};
+
+//歌曲循环方式
+	playWhenEnd () {
+		if (this.state.repeatType === 'random') {
+			let index = this.findMusicIndex(this.state.currentMusicItem);
+			let indexRand = randomRange(0, this.state.musicList.length - 1);
+			while(indexRand === index) {
+				indexRand = randomRange(0, this.state.musicList.length - 1);
+			}
+			this.playMusic(this.state.musicList[indexRand]);
+		}else if (this.state.repeatType === 'once') {
+			this.playMusic(this.state.currentMusicItem);
+		}else {
+			this.playNext();
+		}
+	};
+
+//当前播放歌曲文件下标
+	findMusicIndex(musicItem) {
+		return this.state.musicList.indexOf(musicItem);
+	};
+
 	componentDidMount() {
-		console.log("componentDidMount");
+		console.log("root  componentDidMount");
 		$('#player').jPlayer({
-			ready: function () {
-				$('#player').jPlayer('setMedia', {
-					mp3: 'http://oj4t8z2d5.bkt.clouddn.com/%E9%AD%94%E9%AC%BC%E4%B8%AD%E7%9A%84%E5%A4%A9%E4%BD%BF.mp3'
-				}).jPlayer('pause');
-			},
 			supplied: 'mp3',
 			wmode: 'window'
 		});
-	// 	$('#player').bind($.jPlayer.event.timeupdate, (e) => {
-	// 		duration = e.jPlayer.status.duration;				
-	// 		this.setState({
-	// 			//获取播放时间
-	// 			//progress: Math.round(e.jPlayer.status.currentTime)
-	// 			//获取播放进度条
-	// 			progress: e.jPlayer.status.currentPercentAbsolute
-	// 		});
-	// 	});
-	// 	console.log("11111111");
-	// }
-	// componentWillUnmount() {
-	// 	$('#player').unbind($.jPlayer.event.timeupdate)
-	// }
-	// progressChangeHandle (progress) {
-	// 	$('#player').jPlayer('play', duration * progress);
-	 }
+
+		this.playMusic(this.state.currentMusicItem);
+
+		//播放下一曲
+		$('#player').bind($.jPlayer.event.ended, (e) => {
+			this.playWhenEnd();
+		});
+//切换循环方式
+		// changeRepeat() {
+
+		// };
+
+		Pubsub.subscribe('PLAYER_MUSIC', (msg, musicItem) => {
+			this.playMusic(musicItem);
+		});
+
+		Pubsub.subscribe('DELETE_MUSIC', (msg, musicItem) => {
+			this.setState({
+				musicList: this.state.musicList.filter(item => {
+					return item !== musicItem;
+				})
+			})
+		});
+
+		Pubsub.subscribe('PLAYER_PREV', (msg, musicItem) => {
+			this.playNext('PREV');
+		});
+
+		Pubsub.subscribe('PLAYER_NEXT', (msg, musicItem) => {
+			this.playNext();
+		});
+
+		let repeatList = [
+			'cycle',
+			'once',
+			'random'
+		];
+
+		Pubsub.subscribe('CHANAGE_REPEAT', () => {
+			let index = repeatList.indexOf(this.state.repeatType);
+			index = (index + 1) % repeatList.length;
+			this.setState({
+				repeatType: repeatList[index]
+			});		
+		});
+	};
+
+	componentWillUnMount(){
+		Pubsub.unsubscribe('PLAYER_MUSIC');
+		Pubsub.unsubscribe('DELETE_MUSIC');
+		Pubsub.unsubscribe('PLAYER_PREV');
+		Pubsub.unsubscribe('PLAYER_NEXT');
+		$('player').unbind($.jPlayer.event.ended)
+	};
+ 
 	render() {
+		let This = this;
+		
+		const Home = () => (
+      		<Player currentMusicItem={This.state.currentMusicItem} repeatType={This.state.repeatType} isPlay={This.state.playState}/>
+    	);
+//console.error("&&&&&&root&&&&& " +This.state.repeatType)
+		const List = () => (
+	      	<Musiclist
+		        currentMusicItem={This.state.currentMusicItem} musicList={This.state.musicList}/>
+	    );
+		
 		return (
-			<div>
-				<Header />
-				<Musiclist 
-					currentMusicItem={this.state.currentMusicItem}
-					musicList={this.state.musicList}
-				 />
-			</div>	
+			<Router>
+				<section>
+					<Header />
+					<Route exact path="/" component={Home} />
+					<Route path="/list" component={List} />
+				</section>
+			</Router>
 		);
 	}
-};
+}
 
 export default Root;

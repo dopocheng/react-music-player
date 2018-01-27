@@ -22,11 +22,10 @@ class Progress extends React.Component{
 	changeProgress(e) {
 		let progressBar = this.refs.progressBar;
 		let progress = (e.clientX - progressBar.getBoundingClientRect().left) / progressBar.clientWidth;
-		console.log("progress.js****点击事件" + progress);
+		//console.log("progress.js****点击事件" + progress);
 		this.props.onProgressChange && this.props.onProgressChange(progress);
 	} 	
 	render() {
-		console.log("0000000");
 		return(
 
 			<div className="components-progress" ref="progressBar" onClick={this.changeProgress.bind(this)}>
